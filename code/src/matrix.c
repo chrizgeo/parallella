@@ -28,7 +28,7 @@ double* get_matrix_element(matrix *mat, unsigned row, unsigned col)
 /* Set a matrix value with indexes */
 void set_matrix_element(matrix *mat, unsigned row, unsigned col, double val)
 {
-    mat->data[(col * mat->rows) + row] = val;
+    mat->data[(col * mat->rows) + row] = (double) val;
 }
 
 /* Free the allocated matrix */
@@ -48,12 +48,12 @@ void matrix_free(matrix *mat)
     make sure the input is square matrix */
 void matrix_make_identity(matrix *mat)
 {
-    for(int r = 0; r < mat->rows; r++) {
-        for(int c = 0; c < mat->cols; c++) {
+    for(unsigned r = 0; r < mat->rows; r++) {
+        for(unsigned c = 0; c < mat->cols; c++) {
             if(c == r)
-                set_matrix_element(mat, r, c, 1);
+                set_matrix_element(mat, r, c,  (double) 1);
             else
-                set_matrix_element(mat, r, c, 0);
+                set_matrix_element(mat, r, c, (double) 0);
         }
     }
 }
@@ -61,14 +61,25 @@ void matrix_make_identity(matrix *mat)
 /*  Create transpose of a given matrix */
 void matrix_make_transpose(matrix *src_mat, matrix *dest_mat)
 {
-    for(int r =0; r < src_mat->rows; r++ )  {
-        for(int c = 0; c < src_mat->cols; c++)  {
+    for(unsigned r =0; r < src_mat->rows; r++ )  {
+        for(unsigned c = 0; c < src_mat->cols; c++)  {
             set_matrix_element(dest_mat, r, c, *(get_matrix_element(src_mat, c, r)));
         }
     }
 }
 
-/*  Copy one matrix to anothers
+/* Perform a givens multiplication with only the given rows and columns */
+void matrix_multiply_row(matrix *l, matrix *r, matrix *out, unsigned row, unsigned col)
+{
+    double val;
+    val = 0.0;
+    for(unsigned i =0; i < l->rows; i++) {
+        val += (*get_matrix_element(l, row, i))*(*get_matrix_element(r, i, col));
+        set_matrix_element(out, row, col, val);
+    }    
+}
+
+/*  Copy one matrix to another
     The destination matrix should be allocated 
     prior to calling this function */
 void matrix_copy(matrix *src_mat, matrix *dest_mat)
@@ -86,4 +97,17 @@ void matrix_copy_from_array(matrix *dest_mat, double *input_data)
 void matrix_copy_to_array(matrix *src_mat, double *output_data)
 {
     (void)memcpy(output_data, src_mat->data, src_mat->rows*src_mat->cols*sizeof(double));
+}
+
+/* Print a matrix data to screen */
+void print_matrix(matrix *mat)
+{
+    printf("[ \n");
+    for(int i=0; i < mat->rows; i++) {
+        for(int j = 0; j < mat->cols; j++) {
+            printf("%lf, ", *(get_matrix_element(mat, i, j)));
+        }
+        printf("\n");
+    }
+    printf("] \n");
 }

@@ -1,13 +1,20 @@
 /* Program to find the QR decomposition in a 
     sequential method using the Givens rotation method */
 
+/*  TODO:   Correct implementation of givens method
+            Add computation of times
+            Port to ARM on parallella
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 #include "common.h"
 #include "matrix.h"
-
+/* #define INPUT_ROWS 2
+#define INPUT_COLS 2
+double input_data[4] = {1.0, 2.0, 3.0, 4.0}; */
 #define INPUT_ROWS 16
 #define INPUT_COLS 16
 double input_data[256] = {
@@ -30,40 +37,53 @@ double input_data[256] = {
 };
 
 double *output_data;
-void rotate(double* c, double* s, double* x, double* y)
-{
-    double z = (*c)*(*x) - (*s)*(*y);
-    (*y) = (*s)*(*x) + (*c)*(*y);
-    (*x) = z;
-}
 
-void find_parameters(double* x, double* y, double* c, double* s)
+int find_parameters(double* x, double* y, double* c, double* s)
 {
-    if((*y) == 0) {
-        *c = 1;
-        *s = 0;
-    }
+    if((*y) != 0.0) {
+        double distance;
+        distance = sqrt((*x)*(*x) + (*y)*(*y));
+        *s = (*y) / distance;
+        *c = (*x) / distance;
+        return 0;
+        }
     else {
-        double a, b, r_temp;
-        a = (*y)*(*y);
-        b = (*x)*(*x);
-        r_temp = sqrt(a + b);
-        *c = (*y)/r_temp;
-        *s = (*x)/r_temp;
-        *y = r_temp;
-
+        return 1;
     }
 }
 
+/*  Find the QR with givens rotation method
+    Parameters are the input matrix and the Q and R matrices */
 void givens_qr(matrix *input, matrix *R, matrix *Q)
 {
-    double c = 0, s = 0;
+    double c = 0.0, s = 0.0;
+    matrix q_temp, r_temp, G, G_trans;
+    matrix_init(&q_temp, Q->rows, Q->cols);
+    matrix_init(&r_temp, R->rows, R->cols);
+    matrix_init(&G, input->rows, input->cols);
+    matrix_init(&G_trans, input->cols, input->rows);
+    matrix_make_identity(Q); 
     matrix_copy(input , R);
-    for(int row = 0; row < R->rows - 1; row++) {
-        for(int col = row + 1; col < R->cols; col++) {
-            find_parameters(get_matrix_element(R, row, row), get_matrix_element(R, row, col), &c, &s);
-            for(int i= row + 1; i < R->rows; i++) {
-                rotate(&c, &s, get_matrix_element(R, row, i), get_matrix_element(R, col, i));
+    for(unsigned col = 0; col < input->cols - 1; col++) {
+        for(unsigned row = col + 1; row < input->rows; row++) {
+            if(!find_parameters(get_matrix_element(R, col, col), get_matrix_element(R, row, col), &c, &s)) {
+                matrix_make_identity(&G);
+                set_matrix_element(&G, col, col, c);
+                set_matrix_element(&G, col, row, s);
+                set_matrix_element(&G, row, col, -s);
+                set_matrix_element(&G, row, row, c);
+                matrix_make_transpose(&G, &G_trans);
+
+                matrix_copy(Q, &q_temp);
+                matrix_copy(R, &r_temp);
+                for(unsigned i= 0; i < Q->rows; i++) {
+                    //rotate(&c, &s, get_matrix_element(R, row, i), get_matrix_element(R, col, i));
+                    matrix_multiply_row(&q_temp, &G_trans, Q, row, i);
+                    matrix_multiply_row(&q_temp, &G_trans, Q, col, i);
+                    matrix_multiply_row(&G, &r_temp, R, i, row);
+                    matrix_multiply_row(&G, &r_temp, R, i, col);
+
+                }
             }
         }
     }
@@ -73,20 +93,29 @@ int main(int argc, char** argv)
 {
 
     matrix input_matrix, R, Q;
+    /* Init the matrices */
     matrix_init(&input_matrix, INPUT_ROWS, INPUT_COLS);
     matrix_init(&R, INPUT_ROWS, INPUT_COLS);
     matrix_init(&Q, INPUT_ROWS, INPUT_COLS);
+    /* Copy data to the input matrix */
     matrix_copy_from_array(&input_matrix, input_data);
+    printf("The input matrix is \n");
+    print_matrix(&input_matrix);
+    /* Find the QR decomposition */
     givens_qr(&input_matrix, &R, &Q);
+    /* allocate space for ouput matrix */   
     output_data = malloc(INPUT_ROWS*INPUT_COLS*sizeof(double));
+    /* copy and ouput data to array */
     matrix_copy_to_array(&R, output_data);
     printf("The  R matrix is \n");
-    for(int i = 0; i < INPUT_ROWS; i++) {
-        for(int j = 0; j < INPUT_COLS; j++) {
-            printf("%f, ", *(get_matrix_element(&R, i, j)));
-        }
-        printf("\n");
-    }
+    print_matrix(&R);
+    /* free the memory */
+    
+    /* copy and ouput data to array */
+    matrix_copy_to_array(&Q, output_data);
+    printf("The  Q matrix is \n");
+    print_matrix(&Q);
+    /* free the memory */
     matrix_free(&input_matrix);
     matrix_free(&R);
     matrix_free(&Q);
