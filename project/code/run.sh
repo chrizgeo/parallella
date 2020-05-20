@@ -7,7 +7,7 @@ EXEPATH=$(dirname "$SCRIPT")
 
 
 
-cd $EXEPATH/bin; ./seq_main
+cd $EXEPATH/bin; ./main
 
 > fractal.log
 
