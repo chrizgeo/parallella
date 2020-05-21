@@ -31,4 +31,4 @@ mkdir -p bin/
 
 # Build all 
 gcc -O2 -std=c99 src/main.c src/seq_main.c src/matrix.c src/givens_qr.c -o bin/main ${EINCS} ${ELIBS} -le-hal -le-loader -lpthread -lm
-#e-gcc -Os -std=c99 -falign-loops=8 -falign-functions=8 -Wall  -T ${ELDF} src/e_seq.c -o bin/e_seq.elf -le-lib -lm
+e-gcc -Os -std=c99 -falign-loops=8 -falign-functions=8 -Wall  -T ${ELDF} src/e_seq.c src/e_time.c src/givens_qr.c src/matrix.c -o bin/e_seq.elf -le-lib -lm -g

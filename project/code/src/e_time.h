@@ -8,5 +8,5 @@
 void delay();
 void check_timer_count(unsigned long long*);
 void init_timer(unsigned long long*);
-void calc_time(unsigned long long*);
+unsigned long long calc_time(unsigned long long*);
 #endif

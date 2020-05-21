@@ -1,9 +1,14 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
+
 #include "matrix.h"
+
 #define CORES 16
 #define ROW 4
 #define COL 4
+#define CORENUM_ADDR 0x5000
+#define ACTIVE_ADDR 0x6000
+#define DONE_ADDR 0x7000
 
 /* struct for the shared memory  */
 typedef struct shm {
