@@ -91,3 +91,47 @@ double sequential_qr_parallella(void)
     matrix_free(&Q);
     return seconds*1000000;
 }
+
+unsigned long long sequential_qr_epiphany(void)
+{
+    double us = 500;
+    shm_t shm;
+    /* init epiphany */
+    if(E_OK != e_init(NULL))
+	    FAIL("Can't init!\n");
+	/* reset epiphany chip */
+	e_reset_system();
+	/* get platform information for the rows and columns */
+	e_get_platform_info(&platform);
+    /* initialize and allocate shared memory buffer */
+	if(E_OK != e_alloc(&emem, SHM_OFFSET, sizeof(shm_t)))
+		FAIL("Can't alloc!\n");
+	
+    // /* =============================================================== */
+	//  /*load program to the subgroup */
+	//  /*Loading the program to all 16 cores irrespective of the number of cores used, until we find a better solution for indexing data */
+	// if(E_OK != e_load_group("e_seq.elf", &dev, 0, 0, ROW, COL, E_FALSE))
+	//   	FAIL("Can't load! \n")
+    // 		/* free shm buffer, close workgroup and finalize */
+    
+    
+    /* Init the matrices */
+    matrix_init(&shm.A, INPUT_ROWS, INPUT_COLS);
+    matrix_init(&shm.R, INPUT_ROWS, INPUT_COLS);
+    matrix_init(&shm.Q, INPUT_ROWS, INPUT_COLS);
+
+    /* Copy data to the input matrix */
+    matrix_copy_from_array(&shm.A, input_data);
+    printf("The input matrix is \n");
+    print_matrix(&shm.A);
+
+    /* free the memory */
+    matrix_free(&shm.A);
+    matrix_free(&shm.R);
+    matrix_free(&shm.Q);
+    
+    if(E_OK != e_free(&emem)) FAIL("Can't free!\n");
+	if(E_OK != e_close(&dev)) FAIL("Can't close!\n");
+	if(E_OK != e_finalize())  FAIL("Can't finalize!\n");
+    return us;
+}
