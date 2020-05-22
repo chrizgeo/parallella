@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <e_lib.h>
 #include <math.h>
-#include "matrix.h"
+#include "e_matrix.h"
 
 /* Find the sine and cosine elements to do the transformation */
 int find_parameters(double* x, double* y, double* c, double* s)
@@ -20,7 +21,7 @@ int find_parameters(double* x, double* y, double* c, double* s)
 
 /*  Find the QR with givens rotation method
     Parameters are the input matrix and the Q and R matrices */
-void givens_qr(matrix *input, matrix *R, matrix *Q)
+void givens_qr(volatile matrix *input, volatile matrix *R, volatile matrix *Q)
 {
     double c = 0.0, s = 0.0;
     matrix r_temp, q_temp, G, G_trans;

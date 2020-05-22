@@ -95,7 +95,7 @@ double sequential_qr_parallella(void)
 
 unsigned long long sequential_qr_epiphany(void)
 {
-    double us = 500;
+    unsigned long long us = 500;
     shm_t shm;
     unsigned clr = 0;
     unsigned set = 1;
@@ -117,12 +117,6 @@ unsigned long long sequential_qr_epiphany(void)
     /* initialize and allocate shared memory buffer */
 	if(E_OK != e_alloc(&emem, SHM_OFFSET, sizeof(shm_t)))
 		FAIL("Can't alloc!\n");
-	
-    /* =============================================================== */
-	 /*load program to the subgroup */
-	 /*Loading the program to all 16 cores irrespective of the number of cores used, until we find a better solution for indexing data */
-	if(E_OK != e_load_group("e_seq.elf", &dev, 0, 0, ROW, COL, E_FALSE))
-	  	FAIL("Can't load! \n")
     
     for(i = 0; i < ROW; i++) {
         for(j = 0; j < COL; j++) {
@@ -146,16 +140,29 @@ unsigned long long sequential_qr_epiphany(void)
     matrix_copy_from_array(&shm.A, input_data);
     printf("The input matrix is \n");
     print_matrix(&shm.A);
+	/* Write to shared memory */
+    if(E_ERR == e_write(&emem, 0, 0, (off_t)0, &shm, sizeof(shm_t)))
+		FAIL("Can't write to memory!\n");
 
+    /* =============================================================== */
+	/*load program to the subgroup */
+	/*Loading the program to all 16 cores irrespective of the number of cores used, until we find a better solution for indexing data */
+	if(E_OK != e_load_group("e_seq.elf", &dev, 0, 0, ROW, COL, E_FALSE))
+	  	FAIL("Can't load! \n")
     /* Start the program on epiphany core */
     e_start_group(&dev);
     
     /* Wait for program completion */
     while(!done) {
         e_read(&dev, 0, 0, DONE_ADDR, &done, sizeof(done));
-        printf("done \t %d \n", done);
+        //printf("done \t %d \n", done);
     }
     printf("Sequential computation on a single core completed \n");
+
+    /* read shm , the row, col numbers does not matter since we read from memory buff*/
+	if(E_ERR == e_read(&emem, 0, 0, (off_t)0, &shm,	sizeof(shm_t)))
+	 	FAIL("Can't poll!\n");
+	
     us = shm.total_us[0];
     /* allocate space for ouput matrix */   
     output_data = malloc(INPUT_ROWS*INPUT_COLS*sizeof(double));

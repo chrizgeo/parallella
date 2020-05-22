@@ -8,9 +8,8 @@
 #include <e_lib.h>
 #include "e_time.h"
 #include "common.h"
-#include "givens_qr.h"
+#include "e_givens_qr.h"
 
-#define TIME_US(clock_ticks) (clock_ticks/600U)
 
 volatile shm_t shm SECTION(".shared_dram");
 
@@ -39,8 +38,8 @@ int main(void)
     else {
         /* Do your thing here */
         init_timer(&timer_count);
-        //givens_qr(&shm.A, &shm.R, &shm.Q);
-        check_timer_count(&timer_count);
+        givens_qr(&shm.A, &shm.Q, &shm.R);
+        timer_count = check_timer_count(timer_count);
         shm.total_us[corenum] = calc_time(&timer_count);
         /* Raise the done flag */
 		(*(done)) = 0x00000001;

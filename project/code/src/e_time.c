@@ -11,16 +11,17 @@ void delay()
             ;
 }
 
-void check_timer_count(unsigned long long* timer_count)
+unsigned long long check_timer_count(unsigned long long timer_count)
 {
     unsigned long long timer_clk;
     timer_clk = e_ctimer_get(E_CTIMER_0);
     if(timer_clk <= 0)
     {
-        *timer_count++;
+        timer_count++;
         e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
         e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
     }
+    return timer_count;
 }
 
 void init_timer(unsigned long long* timer_count)
