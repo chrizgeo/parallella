@@ -4,7 +4,10 @@
 #include <string.h>
 #include "matrix.h"
 #include <math.h>
+#include "common.h"
+#include "e-hal.h"
 
+size_t SZ = INPUT_ROWS*INPUT_COLS*sizeof(double);
 /* Allocate memory for matrix data  */
 void matrix_init(matrix *mat, unsigned rows, unsigned cols)
 {
@@ -75,8 +78,8 @@ void matrix_multiply_row(matrix *l, matrix *r, matrix *out, unsigned row, unsign
     val = 0.0;
     for(unsigned i =0; i < l->rows; i++) {
         val += (*get_matrix_element(l, row, i))*(*get_matrix_element(r, i, col));
-        set_matrix_element(out, row, col, val);
-    }    
+    }
+    set_matrix_element(out, row, col, val);
 }
 
 /*  Copy one matrix to another
@@ -110,4 +113,16 @@ void print_matrix(matrix *mat)
         printf("\n");
     }
     printf("] \n");
+}
+
+
+/* Methods to copy matrix data to epiphany core */
+void matrix_copy_from_epiphany(void *dev, unsigned row, unsigned col,unsigned eMatrix, matrix *dest_mat)
+{
+    e_read(dev, row, col, (off_t) eMatrix, dest_mat->data, SZ);
+}
+
+void matrix_copy_to_epiphany(void *dev, unsigned row, unsigned col, matrix *src_mat, unsigned eMatrix)
+{
+    e_write(dev, row, col, (off_t) eMatrix, src_mat->data, SZ);
 }

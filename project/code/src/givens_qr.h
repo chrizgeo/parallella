@@ -3,5 +3,6 @@
 #define _GIVENS_QR_H
 /* function declarations */
 int find_parameters(double* x, double* y, double* c, double* s);
-void givens_qr(matrix* input, matrix* Q, matrix* R);
+void givens_qr(matrix* input, matrix* R);
+void e_givens_qr_single_core(void *dev, shm_t *shm, void *e_mem, matrix *input, matrix *R);
 #endif

@@ -20,8 +20,6 @@
 /* #define INPUT_ROWS 2
 #define INPUT_COLS 2
 double input_data[4] = {1.0, 2.0, 3.0, 4.0}; */
-#define INPUT_ROWS 16
-#define INPUT_COLS 16
 /*  Sample input data for QR factorization
     TODO Create a routine to randomly create input data */
 double input_data[256] = {
@@ -52,14 +50,13 @@ e_mem_t emem;
 double sequential_qr_parallella(void)
 {
 
-    matrix input_matrix, R, Q;
+    matrix input_matrix, R;
     clock_t start, end;
     double seconds;
     
     /* Init the matrices */
     matrix_init(&input_matrix, INPUT_ROWS, INPUT_COLS);
     matrix_init(&R, INPUT_ROWS, INPUT_COLS);
-    matrix_init(&Q, INPUT_ROWS, INPUT_COLS);
     
     /* Copy data to the input matrix */
     matrix_copy_from_array(&input_matrix, input_data);
@@ -68,7 +65,7 @@ double sequential_qr_parallella(void)
     
     start = clock();
     /* Find the QR decomposition */
-    givens_qr(&input_matrix, &R, &Q);
+    givens_qr(&input_matrix, &R);
     end = clock();
     seconds = (double)(end - start)/CLOCKS_PER_SEC;
     /* allocate space for ouput matrix */   
@@ -80,28 +77,35 @@ double sequential_qr_parallella(void)
     
     /* free the memory */
     
-    /* copy and ouput data to array */
-    matrix_copy_to_array(&Q, output_data);
-    printf("The  Q matrix is \n");
-    print_matrix(&Q);
     printf("Time taken is %lf  us \n", seconds*1000000 );
     /* free the memory */
     matrix_free(&input_matrix);
     matrix_free(&R);
-    matrix_free(&Q);
     free(output_data);
     return seconds*1000000;
 }
 
 unsigned long long sequential_qr_epiphany(void)
 {
-    unsigned long long us = 500;
+    unsigned long long us = 0;
     shm_t shm;
     unsigned clr = 0;
     unsigned set = 1;
     unsigned corenum = 1;
     unsigned done = 0, active = 0;
     int i, j;
+    matrix input_matrix, R, Q;
+
+    /* Init the matrices */
+    matrix_init(&input_matrix, INPUT_ROWS, INPUT_COLS);
+    matrix_init(&R, INPUT_ROWS, INPUT_COLS);
+    matrix_init(&Q, INPUT_ROWS, INPUT_COLS);
+
+    /* Copy data to the input matrix */
+    matrix_copy_from_array(&input_matrix, input_data);
+    printf("The input matrix is \n");
+    print_matrix(&input_matrix);
+
 	/* init board */
 	if(E_OK != e_init(NULL))
 		FAIL("Can't init!\n");
@@ -117,12 +121,19 @@ unsigned long long sequential_qr_epiphany(void)
     /* initialize and allocate shared memory buffer */
 	if(E_OK != e_alloc(&emem, SHM_OFFSET, sizeof(shm_t)))
 		FAIL("Can't alloc!\n");
+
+    /* =============================================================== */
+	/*load program to the subgroup */
+	/*Loading the program to all 16 cores irrespective of the number of cores used, until we find a better solution for indexing data */
+	if(E_OK != e_load_group("e_seq.elf", &dev, 0, 0, ROW, COL, E_FALSE))
+	  	FAIL("Can't load! \n")
     
     for(i = 0; i < ROW; i++) {
         for(j = 0; j < COL; j++) {
             e_write(&dev, i, j, ACTIVE_ADDR, &clr, sizeof(clr));
             e_write(&dev, i, j, DONE_ADDR, &clr, sizeof(clr));
             e_write(&dev, i, j, CORENUM_ADDR, &corenum, sizeof(corenum));
+            shm.go[corenum] = 0;
             corenum++;
         }
     }
@@ -131,26 +142,14 @@ unsigned long long sequential_qr_epiphany(void)
     //e_read(&dev, 0, 0, ACTIVE_ADDR, &active, sizeof(active));
     //printf("active of 0, 0 \t %d \n", active);
 
-    /* Init the matrices */
-    matrix_init(&shm.A, INPUT_ROWS, INPUT_COLS);
-    matrix_init(&shm.R, INPUT_ROWS, INPUT_COLS);
-    matrix_init(&shm.Q, INPUT_ROWS, INPUT_COLS);
 
-    /* Copy data to the input matrix */
-    matrix_copy_from_array(&shm.A, input_data);
-    printf("The input matrix is \n");
-    print_matrix(&shm.A);
-	/* Write to shared memory */
     if(E_ERR == e_write(&emem, 0, 0, (off_t)0, &shm, sizeof(shm_t)))
 		FAIL("Can't write to memory!\n");
 
-    /* =============================================================== */
-	/*load program to the subgroup */
-	/*Loading the program to all 16 cores irrespective of the number of cores used, until we find a better solution for indexing data */
-	if(E_OK != e_load_group("e_seq.elf", &dev, 0, 0, ROW, COL, E_FALSE))
-	  	FAIL("Can't load! \n")
     /* Start the program on epiphany core */
     e_start_group(&dev);
+
+    e_givens_qr_single_core(&dev, &shm, &emem, &input_matrix, &R);
     
     /* Wait for program completion */
     while(!done) {
@@ -159,27 +158,12 @@ unsigned long long sequential_qr_epiphany(void)
     }
     printf("Sequential computation on a single core completed \n");
 
+
     /* read shm , the row, col numbers does not matter since we read from memory buff*/
 	if(E_ERR == e_read(&emem, 0, 0, (off_t)0, &shm,	sizeof(shm_t)))
 	 	FAIL("Can't poll!\n");
 	
     us = shm.total_us[0];
-    /* allocate space for ouput matrix */   
-    output_data = malloc(INPUT_ROWS*INPUT_COLS*sizeof(double));
-    /* copy and ouput R matrix to array */
-    matrix_copy_to_array(&shm.R, output_data);
-    printf("The  R matrix is \n");
-    print_matrix(&shm.R);
-        
-    /* copy and ouput Q matrix to array */
-    matrix_copy_to_array(&shm.Q, output_data);
-    printf("The  Q matrix is \n");
-    print_matrix(&shm.Q);
-    
-    /* free the memory */
-    matrix_free(&shm.A);
-    matrix_free(&shm.R);
-    matrix_free(&shm.Q);
     
     /* Free epiphany resources */
     if(E_OK != e_free(&emem)) FAIL("Can't free!\n");

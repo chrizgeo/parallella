@@ -24,16 +24,17 @@ unsigned long long check_timer_count(unsigned long long timer_count)
     return timer_count;
 }
 
-void init_timer(unsigned long long* timer_count)
+unsigned long long  init_timer(unsigned long long timer_count)
 {
-    *timer_count = 0;
+    timer_count = 0;
     e_ctimer_set(E_CTIMER_0, E_CTIMER_MAX);
     e_ctimer_start(E_CTIMER_0, E_CTIMER_CLK);
+    return timer_count;
 }
 
-unsigned long long calc_time(unsigned long long* timer_count)
+unsigned long long calc_time(unsigned long long timer_count)
 {
     unsigned long long timer_clk;
     timer_clk = E_CTIMER_MAX - e_ctimer_get(E_CTIMER_0);
-    return TIME_US((*timer_count*E_CTIMER_MAX) + timer_clk);
+    return ((timer_count*TIME_US(E_CTIMER_MAX)) + TIME_US(timer_clk));
 }
