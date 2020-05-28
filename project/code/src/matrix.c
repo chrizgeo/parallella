@@ -8,6 +8,7 @@
 #include "e-hal.h"
 
 size_t SZ = INPUT_ROWS*INPUT_COLS*sizeof(double);
+size_t SZ1 = INPUT_ROWS*sizeof(double);
 /* Allocate memory for matrix data  */
 void matrix_init(matrix *mat, unsigned rows, unsigned cols)
 {
@@ -116,7 +117,7 @@ void print_matrix(matrix *mat)
 }
 
 
-/* Methods to copy matrix data to epiphany core */
+/* Methods to copy matrix data to and from epiphany core */
 void matrix_copy_from_epiphany(void *dev, unsigned row, unsigned col,unsigned eMatrix, matrix *dest_mat)
 {
     e_read(dev, row, col, (off_t) eMatrix, dest_mat->data, SZ);
@@ -125,4 +126,9 @@ void matrix_copy_from_epiphany(void *dev, unsigned row, unsigned col,unsigned eM
 void matrix_copy_to_epiphany(void *dev, unsigned row, unsigned col, matrix *src_mat, unsigned eMatrix)
 {
     e_write(dev, row, col, (off_t) eMatrix, src_mat->data, SZ);
+}
+
+void matrix_copy_col_from_epiphany(void *dev, unsigned row, unsigned col, unsigned eMatrix, matrix *dest_mat, unsigned mat_col )
+{
+    e_read(dev, row, col, (off_t) eMatrix + mat_col*SZ1, dest_mat->data + mat_col*SZ1 , SZ1);
 }

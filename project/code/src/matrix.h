@@ -25,5 +25,5 @@ void matrix_copy_to_array(matrix* src_mat, double* output_data);
 void print_matrix(matrix* mat);
 void matrix_copy_from_epiphany(void *dev, unsigned row, unsigned col, unsigned eMatrix, matrix* dest_mat);
 void matrix_copy_to_epiphany(void *dev, unsigned row, unsigned col, matrix* src_mat, unsigned eMatrix);
-
+void matrix_copy_col_from_epiphany(void *dev, unsigned row, unsigned col, unsigned eMatrix, matrix *dest_mat, unsigned mat_col );
 #endif  /* _MATRIX_H_ */

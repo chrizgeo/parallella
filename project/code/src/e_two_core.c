@@ -8,6 +8,7 @@
 #include <e_lib.h>
 #include "common.h"
 #include "givens_qr.h"
+#include "e-lib.h"
 
 #define TIME_US(clock_ticks) (clock_ticks/600U)
 
@@ -61,7 +62,7 @@ void givens_multiply(double* A, double* B, double* C, unsigned row, unsigned col
     for(unsigned j = 0; j < INPUT_ROWS; j++) {
         val += A[j*INPUT_ROWS + row] * B[col*INPUT_ROWS + j];
     }
-    C[col*INPUT_ROWS + row] = val;
+    e_write(&e_group_config, &val, 0, 0, &(C[col*INPUT_ROWS + row]), sizeof(val));
 }
 int main(void)
 {
@@ -78,22 +79,31 @@ int main(void)
     coreid = e_get_coreid();
     e_coords_from_coreid(coreid, &col, &row);
     shm.coreid[corenum] = coreid;
-    //shm.row[corenum] = row;
-    //shm.col[corenum] = col;
 	shm.corenum[corenum] = corenum;
-	//shm.active[corenum] = active;
     init_timer();
     while(shm.active[corenum]) {
         /* Do your thing here */
         while(!shm.go[corenum]);
         row = *(unsigned *) Rcomp;
         col = *(unsigned *) Ccomp;
-            for(unsigned i = 0; i < INPUT_ROWS; i++) {
-                givens_multiply(A, B, C, i, col);
-            }    
-            shm.go[corenum] = 0;
-            /* Raise ready flag */
-            (*(ready)) = 0x00000001;
+            if(corenum == 1) {
+                for(unsigned i = 0; i < INPUT_ROWS/2; i++) {
+                    //chk_timer_count();
+                    givens_multiply(A, B, C, i, col);
+                }    
+                shm.go[corenum] = 0;
+                /* Raise ready flag */
+                (*(ready)) = 0x00000001;
+            }
+            else {
+                for(unsigned i = INPUT_ROWS/2; i < INPUT_ROWS; i++) {
+                    //chk_timer_count();
+                    givens_multiply(A, B, C, i, col);
+                }    
+                shm.go[corenum] = 0;
+                /* Raise ready flag */
+                (*(ready)) = 0x00000001;                
+            }
         }
     chk_timer_count();
 	calc_time();

@@ -5,4 +5,6 @@
 int find_parameters(double* x, double* y, double* c, double* s);
 void givens_qr(matrix* input, matrix* R);
 void e_givens_qr_single_core(void *dev, shm_t *shm, void *e_mem, matrix *input, matrix *R);
+void e_givens_qr_two_core(void *dev, shm_t *shm, void *e_mem, matrix *input, matrix *R);
+void e_givens_qr_16_core(void *dev, shm_t *shm, void *e_mem, matrix *input, matrix *R);
 #endif

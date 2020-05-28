@@ -100,7 +100,6 @@ unsigned long long sequential_qr_epiphany(void)
     matrix_init(&input_matrix, INPUT_ROWS, INPUT_COLS);
     matrix_init(&R, INPUT_ROWS, INPUT_COLS);
     matrix_init(&Q, INPUT_ROWS, INPUT_COLS);
-
     /* Copy data to the input matrix */
     matrix_copy_from_array(&input_matrix, input_data);
     printf("The input matrix is \n");
@@ -163,11 +162,182 @@ unsigned long long sequential_qr_epiphany(void)
 	if(E_ERR == e_read(&emem, 0, 0, (off_t)0, &shm,	sizeof(shm_t)))
 	 	FAIL("Can't poll!\n");
 	
-    us = shm.total_us[0];
+    us = shm.total_us[1];
     
     /* Free epiphany resources */
     if(E_OK != e_free(&emem)) FAIL("Can't free!\n");
 	if(E_OK != e_close(&dev)) FAIL("Can't close!\n");
 	if(E_OK != e_finalize())  FAIL("Can't finalize!\n");
+    return us;
+}
+
+unsigned long long parallel_qr_epiphany(void)
+{
+    unsigned long long us = 0;
+    shm_t shm;
+    unsigned clr = 0;
+    unsigned set = 1;
+    unsigned corenum = 1;
+    unsigned done = 0, active = 0;
+    int i, j;
+    matrix input_matrix, R, Q;
+
+    /* Init the matrices */
+    matrix_init(&input_matrix, INPUT_ROWS, INPUT_COLS);
+    matrix_init(&R, INPUT_ROWS, INPUT_COLS);
+    
+    /* Copy data to the input matrix */
+    matrix_copy_from_array(&input_matrix, input_data);
+    printf("The input matrix is \n");
+    print_matrix(&input_matrix);
+
+	/* init board */
+	if(E_OK != e_init(NULL))
+		FAIL("Can't init!\n");
+	/* reset epiphany chip */
+	e_reset_system();
+	/* get platform information for the rows and columns */
+	e_get_platform_info(&platform);
+	
+	/* open workgroup */
+	if(E_OK != e_open(&dev, 0, 0, ROW, COL))
+		FAIL("Can't open workgroup!\n");
+    
+    /* initialize and allocate shared memory buffer */
+	if(E_OK != e_alloc(&emem, SHM_OFFSET, sizeof(shm_t)))
+		FAIL("Can't alloc!\n");
+
+    /* =============================================================== */
+	/*load program to the subgroup */
+	/*Loading the program to all 16 cores irrespective of the number of cores used, until we find a better solution for indexing data */
+	if(E_OK != e_load_group("e_two_core.elf", &dev, 0, 0, ROW, COL, E_FALSE))
+	  	FAIL("Can't load! \n")
+    
+    for(i = 0; i < ROW; i++) {
+        for(j = 0; j < COL; j++) {
+            e_write(&dev, i, j, ACTIVE_ADDR, &clr, sizeof(clr));
+            e_write(&dev, i, j, DONE_ADDR, &clr, sizeof(clr));
+            e_write(&dev, i, j, CORENUM_ADDR, &corenum, sizeof(corenum));
+            shm.go[corenum] = 0;
+            corenum++;
+        }
+    }
+    shm.active[1] = 1;
+    shm.active[2] = 1;
+
+
+    if(E_ERR == e_write(&emem, 0, 0, (off_t)0, &shm, sizeof(shm_t)))
+		FAIL("Can't write to memory!\n");
+
+    /* Start the program on epiphany core */
+    e_start_group(&dev);
+
+    e_givens_qr_two_core(&dev, &shm, &emem, &input_matrix, &R);
+    
+    /* Wait for program completion */
+    while(!done) {
+        e_read(&dev, 0, 0, DONE_ADDR, &done, sizeof(done));
+        //printf("done \t %d \n", done);
+    }
+    printf("Sequential computation on two cores completed \n");
+
+
+    /* read shm , the row, col numbers does not matter since we read from memory buff*/
+	if(E_ERR == e_read(&emem, 0, 0, (off_t)0, &shm,	sizeof(shm_t)))
+	 	FAIL("Can't poll!\n");
+	
+    us = (shm.total_us[1] + shm.total_us[2])/2;
+    
+    /* Free epiphany resources */
+    if(E_OK != e_free(&emem)) FAIL("Can't free!\n");
+	if(E_OK != e_close(&dev)) FAIL("Can't close!\n");
+	if(E_OK != e_finalize())  FAIL("Can't finalize!\n");
+    return us;
+}
+
+unsigned long long parallel_16_qr_epiphany(void)
+{
+    unsigned long long us = 0;
+    shm_t shm;
+    unsigned clr = 0;
+    unsigned set = 1;
+    unsigned corenum = 0;
+    unsigned done = 0, active = 0;
+    int i, j;
+    matrix input_matrix, R;
+
+    /* Init the matrices */
+    matrix_init(&input_matrix, INPUT_ROWS, INPUT_COLS);
+    matrix_init(&R, INPUT_ROWS, INPUT_COLS);
+    
+    /* Copy data to the input matrix */
+    matrix_copy_from_array(&input_matrix, input_data);
+    printf("The input matrix is \n");
+    print_matrix(&input_matrix);
+
+	/* init board */
+	if(E_OK != e_init(NULL))
+		FAIL("Can't init!\n");
+	/* reset epiphany chip */
+	e_reset_system();
+	/* get platform information for the rows and columns */
+	e_get_platform_info(&platform);
+	
+	/* open workgroup */
+	if(E_OK != e_open(&dev, 0, 0, ROW, COL))
+		FAIL("Can't open workgroup!\n");
+    
+    /* initialize and allocate shared memory buffer */
+	if(E_OK != e_alloc(&emem, SHM_OFFSET, sizeof(shm_t)))
+		FAIL("Can't alloc!\n");
+
+    /* =============================================================== */
+	/*load program to the subgroup */
+	/*Loading the program to all 16 cores irrespective of the number of cores used, until we find a better solution for indexing data */
+	if(E_OK != e_load_group("e_16_core.elf", &dev, 0, 0, ROW, COL, E_FALSE))
+	  	FAIL("Can't load! \n")
+    
+    for(i = 0; i < ROW; i++) {
+        for(j = 0; j < COL; j++) {
+            e_write(&dev, i, j, ACTIVE_ADDR, &clr, sizeof(clr));
+            e_write(&dev, i, j, DONE_ADDR, &clr, sizeof(clr));
+            e_write(&dev, i, j, CORENUM_ADDR, &corenum, sizeof(corenum));
+            shm.go[corenum] = 0;
+            shm.active[corenum] = 1;
+            corenum++;
+        }
+    }
+
+    if(E_ERR == e_write(&emem, 0, 0, (off_t)0, &shm, sizeof(shm_t)))
+		FAIL("Can't write to memory!\n");
+
+    /* Start the program on epiphany core */
+    e_start_group(&dev);
+
+    e_givens_qr_16_core(&dev, &shm, &emem, &input_matrix, &R);
+    
+    /* Wait for program completion */
+    while(!done) {
+        e_read(&dev, 0, 0, DONE_ADDR, &done, sizeof(done));
+        //printf("done \t %d \n", done);
+    }
+    printf("Sequential computation on 16 cores completed \n");
+
+
+    /* read shm , the row, col numbers does not matter since we read from memory buff*/
+	if(E_ERR == e_read(&emem, 0, 0, (off_t)0, &shm,	sizeof(shm_t)))
+	 	FAIL("Can't poll!\n");
+	
+    for(i = 0; i < 16; i++) {
+        us += shm.total_us[1];
+    }    
+    
+    us = us/16;
+    
+    /* Free epiphany resources */
+    if(E_OK != e_free(&emem)) FAIL("Can't free!\n");
+	if(E_OK != e_close(&dev)) FAIL("Can't close!\n");
+	if(E_OK != e_finalize())  FAIL("Can't finalize!\n");
+    
     return us;
 }
