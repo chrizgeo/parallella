@@ -5,6 +5,8 @@
 
 #include <stdint.h>
 
+#define DEBUG 1
+
 #define NCORES 16
 #define MATROW 4
 #define MATCOL 4
@@ -27,7 +29,7 @@ typedef struct {
     double IN[MATROW*MATCOL];
     double OUT[MATROW*MATCOL];
     mbox_t core;
-} __attrbute__ ((packed)) shared_buf_t;
+} __attribute__ ((packed)) shared_buf_t;
 
 typedef struct {
 
@@ -36,6 +38,6 @@ typedef struct {
     double* pOUT;
     mbox_t *pCore;
 
-}  mboxPtr_t;
+}  shared_buf_ptr_t;
 
 #endif  /* __SYS_ARR_H */ 
