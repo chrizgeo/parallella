@@ -13,6 +13,7 @@
 
 int main(int argc, char *argv[]);
 int load_programs(e_epiphany_t *pEpiphany);
+void mailbox_init(shared_buf_t* Mailbox);
 
 shared_buf_t Mailbox;
 
@@ -46,6 +47,11 @@ int main (int argc, char *argv[])
     memset(&Mailbox, 0, sizeof(Mailbox));
     e_write(pDRAM, 0, 0, 0, &Mailbox, sizeof(Mailbox));
 
+    /* Set input and ouput core details */
+    mailbox_init(&Mailbox);
+    /* Write info to memory */
+    e_write(pDRAM, 0, 0, 0, &Mailbox, sizeof(Mailbox));
+
     /*  Load program to epiphany */
     load_programs(pEpiphany);
 
@@ -54,13 +60,21 @@ int main (int argc, char *argv[])
         /* Print the ouput matrix */ 
     for(int i = 0; i < MATROW; i++) {
         for(int j = 0; j < MATCOL; j++) {
-            Mailbox.IN[j*MATROW + i] = j*MATROW + i;
-            Mailbox.OUT[j*MATROW + i] = 1;
+            Mailbox.IN[i*MATCOL + j] = i*MATCOL + j + 1;
+            Mailbox.OUT[i*MATCOL + j] = -1;
         }
     }
 
 #if DEBUG
     printf("Setting up the IN and OUT arrays START \n");
+    /* Print input matrix */
+    for(int i = 0; i < MATROW; i++) {
+        printf("\n");
+        for(int j = 0; j < MATCOL; j++) {
+            printf("%f, ", Mailbox.IN[i*MATCOL + j]);
+        }
+    }
+    printf("\n");
 #endif /* DEBUG */
 
     /* Copy the input matrix to the epiphany system */
@@ -118,9 +132,10 @@ int main (int argc, char *argv[])
     for(int i = 0; i < MATROW; i++) {
         printf("\n");
         for(int j = 0; j < MATCOL; j++) {
-            printf("%f, ", Mailbox.OUT[j*MATROW + i]);
+            printf("%f, ", Mailbox.OUT[i*MATCOL + j]);
         }
     }
+    printf(" \n");
     return 0;    
 }
 
@@ -242,4 +257,22 @@ int load_programs(e_epiphany_t *pEpiphany)
     printf("Loading code to epiphany cores END \n");
 #endif /* DEBUG */
 
+}
+
+void mailbox_init(shared_buf_t *Mailbox)
+{
+    unsigned row, col, corenum;
+    for(row = 0; row < ROW; row++) {
+        for(col = 0; col < COL; col++) {
+            corenum = row*COL + col;
+            if(row == 0)
+                Mailbox->incore[corenum] = 1;
+            else
+                Mailbox->incore[corenum] = 0;
+            if(col == COL-1)
+                Mailbox->outcore[corenum] = 1;
+            else
+                Mailbox->outcore[corenum] = 0;
+        }
+    }
 }

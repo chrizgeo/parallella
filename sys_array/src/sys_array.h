@@ -8,26 +8,50 @@
 #define DEBUG 1
 
 #define NCORES 16
+#define ROW 4
+#define COL 4 
 #define MATROW 4
 #define MATCOL 4
+#define _C 0
+#define _S 1
+#define _R 2
+
 
 typedef struct {
-    uint32_t coreid;
-    uint32_t corenum;
-    uint32_t col;
-    uint32_t row;
+    unsigned coreid;
+    unsigned corenum;
+    unsigned col;
+    unsigned row;
+    unsigned incore;
+    unsigned outcore;
+    unsigned colnext;
+    unsigned rownext;
+    unsigned colprev;
+    unsigned rowprev;
+    unsigned coldown;
+    unsigned rowdown;
+    unsigned colup;
+    unsigned rowup;
+    void* CSR;
+    void* X;
+    void* inCSR;
+    void* outCSR;
+    void* inX;
+    void* outX;
 } __attribute__ ((packed)) core_t;
 
 typedef struct {
-    uint32_t ready;
-    uint32_t go;
-    uint32_t done;
-    uint32_t timer0_ticks;
+    unsigned ready;
+    unsigned go;
+    unsigned done;
+    unsigned timer0_ticks;
 } __attribute__ ((packed)) mbox_t;
 
 typedef struct {
     double IN[MATROW*MATCOL];
     double OUT[MATROW*MATCOL];
+    unsigned incore[NCORES];
+    unsigned outcore[NCORES];
     mbox_t core;
 } __attribute__ ((packed)) shared_buf_t;
 
@@ -37,6 +61,8 @@ typedef struct {
     double* pIN;
     double* pOUT;
     mbox_t *pCore;
+    unsigned* pOutcore;
+    unsigned* pIncore;
 
 }  shared_buf_ptr_t;
 
