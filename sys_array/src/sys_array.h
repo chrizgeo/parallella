@@ -14,7 +14,6 @@
 #define MATCOL 4
 #define _C 0
 #define _S 1
-#define _R 2
 
 
 typedef struct {
@@ -32,11 +31,9 @@ typedef struct {
     unsigned rowdown;
     unsigned colup;
     unsigned rowup;
-    void* CSR;
+    void* CS;
     void* X;
-    void* inCSR;
-    void* outCSR;
-    void* inX;
+    void* outCS;
     void* outX;
 } __attribute__ ((packed)) core_t;
 
@@ -45,13 +42,15 @@ typedef struct {
     unsigned go;
     unsigned done;
     unsigned timer0_ticks;
+    unsigned incore[NCORES];
+    unsigned outcore[NCORES];
+    unsigned iterations[NCORES];
+    unsigned active[NCORES];
 } __attribute__ ((packed)) mbox_t;
 
 typedef struct {
     double IN[MATROW*MATCOL];
     double OUT[MATROW*MATCOL];
-    unsigned incore[NCORES];
-    unsigned outcore[NCORES];
     mbox_t core;
 } __attribute__ ((packed)) shared_buf_t;
 
@@ -61,9 +60,6 @@ typedef struct {
     double* pIN;
     double* pOUT;
     mbox_t *pCore;
-    unsigned* pOutcore;
-    unsigned* pIncore;
-
 }  shared_buf_ptr_t;
 
 #endif  /* __SYS_ARR_H */ 

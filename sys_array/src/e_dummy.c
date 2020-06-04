@@ -59,16 +59,12 @@ void init()
     Mailbox.pIN = Mailbox.pBase + offsetof(shared_buf_t, IN[0]);
     Mailbox.pOUT = Mailbox.pBase + offsetof(shared_buf_t, OUT[0]);
     Mailbox.pCore = Mailbox.pBase + offsetof(shared_buf_t, core);
-    Mailbox.pOutcore = Mailbox.pBase + offsetof(shared_buf_t, outcore[0]);
-    Mailbox.pIncore = Mailbox.pBase + offsetof(shared_buf_t, incore[0]);
     
-    me.incore = Mailbox.pIncore[me.corenum];
-    me.outcore = Mailbox.pOutcore[me.corenum];
-    me.CSR = (void *) &CSR[0];
+    me.incore = Mailbox.pCore->incore[me.corenum];
+    me.outcore = Mailbox.pCore->outcore[me.corenum];
+    me.CS = (void *) &CS[0];
     me.X = (void *) &X;
-    me.inCSR =  e_get_global_address(me.rowprev, me.colprev, me.CSR);
-    me.outCSR  = e_get_global_address(me.rownext, me.colnext, me.CSR);
-    me.inX = e_get_global_address(me.rowup, me.colup, me.X);
+    me.outCS  = e_get_global_address(me.rownext, me.colnext, me.CS);
     me.outX = e_get_global_address(me.rowdown, me.coldown, me.X);
 }
 
@@ -77,7 +73,7 @@ void compute()
     /*  I am not doing anything here since i am dummy
         tah tah tah tatataah tah tah tah tatataah
         'Chacko, find the dummy to dummy distance' */
-    for(int i = 0; i < MATROW; i++) {
+    for(int i = 0; i < MATROW + MATCOL; i++) {
         
         /* Sync cores */
         e_barrier(barriers, tgt_bars);

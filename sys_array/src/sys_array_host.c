@@ -17,6 +17,16 @@ void mailbox_init(shared_buf_t* Mailbox);
 
 shared_buf_t Mailbox;
 
+double inputMatrix[16] =   {4.05662, 6.52323, 8.35263, 2.45435, \
+                            2.09345, 4.45143, 6.23422, 1.23432, \
+                            3.45622, 6.34232, 7.45243, 3.45512, \
+                            3.52435, 4.23434, 1.34234, 7.34134};
+
+/* double inputMatrix[16] =   {1, 2, 3, 4, \
+                            5, 6, 7, 8, \
+                            9, 10, 11, 12, \
+                            13, 14, 15, 16}; */
+
 int main (int argc, char *argv[])
 {
     e_epiphany_t Epiphany, *pEpiphany;
@@ -57,10 +67,10 @@ int main (int argc, char *argv[])
 
     /*  TODO 
         Dynamic input array  */
+    memcpy(&Mailbox.IN[0], &inputMatrix[0], sizeof(inputMatrix));
         /* Print the ouput matrix */ 
     for(int i = 0; i < MATROW; i++) {
         for(int j = 0; j < MATCOL; j++) {
-            Mailbox.IN[i*MATCOL + j] = i*MATCOL + j + 1;
             Mailbox.OUT[i*MATCOL + j] = -1;
         }
     }
@@ -265,14 +275,21 @@ void mailbox_init(shared_buf_t *Mailbox)
     for(row = 0; row < ROW; row++) {
         for(col = 0; col < COL; col++) {
             corenum = row*COL + col;
-            if(row == 0)
-                Mailbox->incore[corenum] = 1;
-            else
-                Mailbox->incore[corenum] = 0;
-            if(col == COL-1)
-                Mailbox->outcore[corenum] = 1;
-            else
-                Mailbox->outcore[corenum] = 0;
+            if(row == 0) {
+                Mailbox->core.incore[corenum] = 1;
+                Mailbox->core.active[corenum] = 1;
+            }
+            else {
+                Mailbox->core.incore[corenum] = 0;
+                Mailbox->core.active[corenum] = 0;
+            }
+            if(col == COL-1) {
+                Mailbox->core.outcore[corenum] = 1;
+            }
+            else {
+                Mailbox->core.outcore[corenum] = 0;
+            }
+            Mailbox->core.iterations[corenum] = 0;
         }
     }
 }

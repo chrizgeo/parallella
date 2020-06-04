@@ -4,7 +4,7 @@
 #include <e-lib.h>
 #include "sys_array.h"
 
-extern volatile double CSR[3];
+extern volatile double CS[2];
 extern volatile double X; 
 extern          core_t me;
 extern volatile shared_buf_ptr_t Mailbox;
