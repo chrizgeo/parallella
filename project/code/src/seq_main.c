@@ -178,7 +178,7 @@ unsigned long long parallel_qr_epiphany(void)
     unsigned clr = 0;
     unsigned set = 1;
     unsigned corenum = 1;
-    unsigned done = 0, active = 0;
+    unsigned done1 = 0, done2 = 0, active = 0;
     int i, j;
     matrix input_matrix, R, Q;
 
@@ -235,9 +235,9 @@ unsigned long long parallel_qr_epiphany(void)
     e_givens_qr_two_core(&dev, &shm, &emem, &input_matrix, &R);
     
     /* Wait for program completion */
-    while(!done) {
-        e_read(&dev, 0, 0, DONE_ADDR, &done, sizeof(done));
-        //printf("done \t %d \n", done);
+    while(!done1 || !done2 ) {
+        e_read(&dev, 0, 0, DONE_ADDR, &done1, sizeof(done1));
+        e_read(&dev, 0, 0, DONE_ADDR, &done2, sizeof(done2));
     }
     printf("Sequential computation on two cores completed \n");
 
